@@ -1,8 +1,10 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const googleIt = require('google-it');
+const OpenAI = require('openai');
 require('dotenv').config();
 
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const API_URL = process.env.LARAVEL_API_URL;
 
 async function runPhase2() {
@@ -26,6 +28,22 @@ async function runPhase2() {
                 continue;
             }
         }
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert blog editor. You will rewrite an article to match the depth and style of top-ranking competitors while citing them at the bottom."
+                },
+                {
+                    role: "user",
+                    content: `Original Title: ${originalArticle.title}\nOriginal Content: ${originalArticle.excerpt}\n\nCompetitor Research Data:\n${referenceContext}\n\nTask:\n1. Rewrite the article to be more detailed and better formatted (use Markdown).\n2. Use the competitor data to improve the quality.\n3. At the very end, add a section 'References:' and list the source links used.`
+                }
+            ]
+        });
+
+        const updatedContent = completion.choices[0].message.content;
 
     } catch (error) {
         console.error(error.message);
